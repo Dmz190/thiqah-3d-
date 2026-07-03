@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>THIQAH Unipole - 3D Interactive v11</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { height:100%; overflow:hidden; background:#0c0d10; font-family:'Segoe UI',system-ui,sans-serif; }
+  #c { display:block; width:100%; height:100%; touch-action:none; }
+  .hud { position:fixed; left:16px; top:16px; color:#e8e9eb; pointer-events:none; }
+  .hud h1 { font-size:15px; font-weight:600; letter-spacing:2.5px; }
+  .hud p { font-size:11px; color:#9aa0a8; margin-top:4px; letter-spacing:0.4px; }
+  .chips { position:fixed; left:16px; bottom:16px; display:flex; flex-direction:column;
+           align-items:flex-start; gap:6px; pointer-events:none; }
+  .chip { background:rgba(20,22,26,0.72); border:1px solid rgba(255,255,255,0.10); color:#c9cdd3;
+          font-size:10.5px; padding:6px 10px; border-radius:20px; letter-spacing:0.5px; backdrop-filter:blur(6px); }
+  .btns { position:fixed; right:16px; top:16px; display:flex; gap:8px; }
+  .btn { background:rgba(20,22,26,0.72); border:1px solid rgba(255,255,255,0.14); color:#e8e9eb;
+         font-size:12px; padding:9px 14px; border-radius:22px; cursor:pointer; letter-spacing:0.6px;
+         backdrop-filter:blur(6px); }
+  .btn.active { background:#e8a64c; color:#17191c; border-color:#e8a64c; font-weight:600; }
+  #info { position:fixed; left:12px; right:12px; bottom:76px; background:rgba(18,20,24,0.92);
+         border:1px solid rgba(232,166,76,0.5); border-radius:14px; padding:14px 16px;
+         color:#e8e9eb; backdrop-filter:blur(8px); display:none; z-index:30; }
+  #info h2 { font-size:14px; color:#e8a64c; letter-spacing:0.5px; margin-bottom:6px; direction:rtl; text-align:right; }
+  #info p { font-size:12.5px; line-height:1.7; color:#cfd2d6; direction:rtl; text-align:right; }
+  #info .close { position:absolute; left:10px; top:10px; color:#9aa0a8; font-size:16px; cursor:pointer; }
+  .taphint { position:fixed; left:50%; transform:translateX(-50%); bottom:16px; color:#e8a64c;
+             font-size:11px; letter-spacing:0.4px; pointer-events:none; direction:rtl;
+             background:rgba(20,22,26,0.7); padding:6px 12px; border-radius:16px; }
+  .views { position:fixed; right:16px; top:50%; transform:translateY(-50%);
+           display:flex; flex-direction:column; gap:10px; z-index:20; }
+  .vbtn { width:48px; height:48px; border-radius:50%; background:rgba(20,22,26,0.78);
+          border:1px solid rgba(255,255,255,0.16); color:#e8e9eb; font-size:20px;
+          display:flex; align-items:center; justify-content:center; cursor:pointer;
+          backdrop-filter:blur(6px); }
+  .vbtn.active { background:#e8a64c; border-color:#e8a64c; }
+  .vbtn span.lbl { position:absolute; right:56px; font-size:10px; color:#c9cdd3;
+          background:rgba(20,22,26,0.7); padding:3px 8px; border-radius:10px;
+          white-space:nowrap; direction:rtl; }
+  .share { position:fixed; right:16px; bottom:52px; display:flex; flex-direction:column; gap:8px; z-index:25; }
+  .sbtn { display:flex; align-items:center; gap:8px; background:rgba(20,22,26,0.78);
+          border:1px solid rgba(255,255,255,0.16); color:#e8e9eb; font-size:12px;
+          padding:9px 14px; border-radius:22px; cursor:pointer; backdrop-filter:blur(6px);
+          letter-spacing:0.3px; }
+  .sbtn.wa { border-color:rgba(37,211,102,0.6); }
+  .sbtn.wa b { color:#25d366; font-size:15px; }
+  #toast { position:fixed; left:50%; transform:translateX(-50%); bottom:110px;
+           background:#e8a64c; color:#17191c; font-size:12.5px; font-weight:600;
+           padding:9px 18px; border-radius:20px; display:none; z-index:40; direction:rtl; }
+  .hint { position:fixed; right:16px; bottom:16px; color:#6b7078; font-size:10.5px; letter-spacing:0.4px; pointer-events:none; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="hud">
+  <h1>THIQAH &mdash; UNIPOLE</h1>
+  <p>3D site &middot; sea left &middot; sign at yard corner</p>
+</div>
+<div class="btns">
+  <button class="btn" id="dayBtn">Day</button>
+  <button class="btn active" id="nightBtn">Night</button>
+  <button class="btn" id="spinBtn">Auto-rotate</button>
+  <button class="btn" id="orientBtn">التوجيه</button>
+</div>
+<div class="chips">
+  <div class="chip">Sign 3 m &times; 2 m &middot; double-sided</div>
+  <div class="chip">8" pole &middot; total H 6 m</div>
+  <div class="chip">Aligned with guard room at corner</div>
+</div>
+<div class="views">
+  <div class="vbtn" id="v1" title="Driver view">&#128663;<span class="lbl">منظور السايق - الكورنيش</span></div>
+  <div class="vbtn" id="v2" title="Top view">&#128506;<span class="lbl">منظور علوي - المخطط</span></div>
+  <div class="vbtn" id="v3" title="Sea view">&#127754;<span class="lbl">من جهة البحر</span></div>
+  <div class="vbtn" id="v4" title="Yard view">&#128230;<span class="lbl">من داخل الساحة</span></div>
+</div>
+<div class="share">
+  <div class="sbtn wa" id="waBtn"><b>&#9993;</b> شير واتساب</div>
+  <div class="sbtn" id="cpBtn">&#128279; نسخ الرابط</div>
+</div>
+<div id="toast"></div>
+<div class="hint">drag to rotate &middot; pinch / scroll to zoom</div>
+<div class="taphint">اضغط على أي عنصر تطلع لك تفاصيله</div>
+<div id="info"><span class="close" onclick="hideInfo()">&#10005;</span><h2 id="infoT"></h2><p id="infoP"></p></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(44, 1, 0.1, 500);
+
+/* layout: road runs along Z (driver comes from +Z heading -Z)
+   sea on the LEFT (x < -7), fence + containers on the RIGHT (x > 7)
+   yard corner at z = -14 where the road bends right (+X)
+   booth + sign aligned together at the corner */
+const CZ = -14;               // corner z
+const SIGN_X = 6.1, SIGN_Z = CZ + 1.0;
+const BOOTH_X = 9.4, BOOTH_Z = CZ + 0.4;
+
+/* ---------- sign face: T monogram, name only ---------- */
+function roundRect(g,x,y,w2,h2,r){
+  g.beginPath();
+  g.moveTo(x+r,y);
+  g.arcTo(x+w2,y,x+w2,y+h2,r);
+  g.arcTo(x+w2,y+h2,x,y+h2,r);
+  g.arcTo(x,y+h2,x,y,r);
+  g.arcTo(x,y,x+w2,y,r);
+  g.closePath();
+}
+function faceTexture(night){
+  const w=1500, h=1000;
+  const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+  const g=cv.getContext('2d');
+  const bg=g.createLinearGradient(0,0,0,h);
+  bg.addColorStop(0,'#262930'); bg.addColorStop(1, night?'#14161a':'#181a1e');
+  g.fillStyle=bg; g.fillRect(0,0,w,h);
+  const vg=g.createRadialGradient(w/2,h/2,h*0.25,w/2,h/2,w*0.72);
+  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,0.4)');
+  g.fillStyle=vg; g.fillRect(0,0,w,h);
+  const AMB='#d69c42', AMB_L='#eeb860';
+  const mcx=280, mcy=470, ms=150;
+  g.strokeStyle=AMB; g.lineWidth=15;
+  roundRect(g,mcx-ms,mcy-ms,ms*2,ms*2,42); g.stroke();
+  const cs=34;
+  for(const [ox,oy] of [[-1,-1],[1,-1],[-1,1],[1,1]]){
+    g.fillStyle = oy>0 ? '#c08a34' : AMB_L;
+    roundRect(g,mcx+ox*ms-cs,mcy+oy*ms-cs,cs*2,cs*2,12); g.fill();
+    g.fillStyle='#181a1e';
+    g.beginPath(); g.arc(mcx+ox*ms,mcy+oy*ms,9,0,Math.PI*2); g.fill();
+  }
+  const tg=g.createLinearGradient(0,mcy-95,0,mcy+105);
+  tg.addColorStop(0,AMB_L); tg.addColorStop(1,'#b67e2a');
+  g.fillStyle=tg;
+  g.fillRect(mcx-88,mcy-95,176,46);
+  g.fillRect(mcx-25,mcy-49,50,150);
+  g.fillStyle='#e8a64c'; g.font='600 86px "Segoe UI",Tahoma,sans-serif'; g.textAlign='left';
+  g.fillText('\u062B\u0642\u0629', 516, 372);
+  g.fillStyle = night?'#f7f7f8':'#ececec';
+  g.font='700 168px "Segoe UI",Arial,sans-serif';
+  const word='THIQAH', track=26;
+  let x=510, tw=0;
+  for(const ch of word) tw+=g.measureText(ch).width+track;
+  tw-=track;
+  for(const ch of word){ g.fillText(ch,x,560); x+=g.measureText(ch).width+track; }
+  g.fillStyle='#e8a64c'; g.fillRect(516,648,tw-12,8);
+  const t=new THREE.CanvasTexture(cv); t.anisotropy=8; return t;
+}
+
+/* ---------- ground: asphalt everywhere ---------- */
+function asphaltTexture(){
+  const s=1024, cv=document.createElement('canvas'); cv.width=cv.height=s;
+  const g=cv.getContext('2d');
+  g.fillStyle='#38393b'; g.fillRect(0,0,s,s);
+  for(let i=0;i<14000;i++){
+    const v=44+Math.random()*46;
+    g.fillStyle=`rgba(${v},${v},${v+2},0.5)`;
+    g.fillRect(Math.random()*s,Math.random()*s,2.2,2.2);
+  }
+  const t=new THREE.CanvasTexture(cv);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(7,7);
+  return t;
+}
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(140,140),
+  new THREE.MeshStandardMaterial({map:asphaltTexture(),roughness:0.96,transparent:true,opacity:1}));
+ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
+
+/* ---------- SEA on the left ---------- */
+const sea=new THREE.Mesh(new THREE.PlaneGeometry(90,160),
+  new THREE.MeshStandardMaterial({color:0x2e6d80, roughness:0.35, metalness:0.15}));
+sea.rotation.x=-Math.PI/2;
+sea.position.set(-53,-0.18,0);
+scene.add(sea);
+// shoreline rock strip
+const shore=new THREE.Mesh(new THREE.BoxGeometry(2.2,0.5,160),
+  new THREE.MeshStandardMaterial({color:0x5c5952,roughness:1}));
+shore.position.set(-8.6,0.1,0); shore.receiveShadow=shore.castShadow=true; scene.add(shore);
+
+/* ---------- yellow road lines (fence edge + right bend) ---------- */
+const lineMat=new THREE.MeshStandardMaterial({color:0xd8b23a,roughness:0.8});
+function lineSeg(x1,z1,x2,z2){
+  const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz);
+  const m=new THREE.Mesh(new THREE.BoxGeometry(len,0.02,0.16),lineMat);
+  m.position.set((x1+x2)/2,0.011,(z1+z2)/2);
+  m.rotation.y=-Math.atan2(dz,dx);
+  scene.add(m);
+}
+lineSeg(5.4,30, 5.4,CZ+2.2);                       // along fence
+// right bend arc
+for(let i=0;i<8;i++){
+  const a0=Math.PI+ i/8*(Math.PI/2), a1=Math.PI+(i+1)/8*(Math.PI/2);
+  const r=4.2, cx=9.6, cz=CZ+2.2;
+  lineSeg(cx+r*Math.cos(a0), cz+r*Math.sin(a0)*-1+0, cx+r*Math.cos(a1), cz - r*Math.sin(a1));
+}
+lineSeg(9.6,CZ-2.0, 40,CZ-2.0);                    // after the bend, heading +X
+lineSeg(-6.4,30, -6.4,-30);                        // sea-side edge line
+
+/* ---------- painted text labels (roads / sea / yard) ---------- */
+function textPlane(txt, wM, col, bgAlpha){
+  const cv=document.createElement('canvas'); cv.width=1024; cv.height=256;
+  const g=cv.getContext('2d');
+  if(bgAlpha){ g.fillStyle='rgba(20,22,26,'+bgAlpha+')';
+    g.beginPath(); g.moveTo(30,0); g.lineTo(994,0); g.arcTo(1024,0,1024,30,30);
+    g.lineTo(1024,226); g.arcTo(1024,256,994,256,30); g.lineTo(30,256);
+    g.arcTo(0,256,0,226,30); g.lineTo(0,30); g.arcTo(0,0,30,0,30); g.fill(); }
+  g.fillStyle=col; g.font='bold 118px "Segoe UI", Tahoma, sans-serif';
+  g.textAlign='center'; g.textBaseline='middle';
+  g.fillText(txt, 512, 134);
+  const t=new THREE.CanvasTexture(cv); t.anisotropy=8;
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(wM, wM/4),
+    new THREE.MeshBasicMaterial({map:t, transparent:true, depthWrite:false}));
+  return m;
+}
+// main road label - painted flat on the asphalt, runs along the road
+const lblMain=textPlane('\u0627\u0644\u0637\u0631\u064A\u0642 \u0627\u0644\u0631\u0626\u064A\u0633\u064A - \u0627\u0644\u0643\u0648\u0631\u0646\u064A\u0634', 11, 'rgba(240,240,242,0.95)');
+lblMain.rotation.x=-Math.PI/2; lblMain.rotation.z=Math.PI/2;
+lblMain.position.set(-1.2,0.03,8); scene.add(lblMain);
+const lblMain2=lblMain.clone();
+lblMain2.position.set(-1.2,0.03,-4); scene.add(lblMain2);
+// right-bend label
+const lblBend=textPlane('\u0644\u0641\u0629 \u064A\u0645\u064A\u0646 - \u0645\u062F\u062E\u0644 \u0627\u0644\u0633\u0627\u062D\u0629', 9, 'rgba(240,240,242,0.95)');
+lblBend.rotation.x=-Math.PI/2;
+lblBend.position.set(17,0.03,CZ-2); scene.add(lblBend);
+// sea label - floating billboard style
+const lblSea=textPlane('\u0627\u0644\u0628\u062D\u0631', 8, 'rgba(232,244,246,0.95)');
+lblSea.rotation.x=-Math.PI/2;
+lblSea.position.set(-20,0.06,4); scene.add(lblSea);
+// yard label
+const lblYard=textPlane('\u0633\u0627\u062D\u0629 \u062B\u0642\u0629', 8, 'rgba(232,166,76,0.95)');
+lblYard.rotation.x=-Math.PI/2;
+lblYard.position.set(16,0.03,-3); scene.add(lblYard);
+
+/* ---------- jersey barriers along the sea side ---------- */
+function barrier(x,z,rot){
+  const g=new THREE.Group();
+  const b=new THREE.Mesh(new THREE.BoxGeometry(1.1,0.55,0.42),
+    new THREE.MeshStandardMaterial({color:0xd8d4cc,roughness:0.9}));
+  b.position.y=0.36; b.castShadow=b.receiveShadow=true; g.add(b);
+  const base=new THREE.Mesh(new THREE.BoxGeometry(1.1,0.18,0.6),
+    new THREE.MeshStandardMaterial({color:0xc9c4ba,roughness:0.9}));
+  base.position.y=0.09; g.add(base);
+  const stripe=new THREE.Mesh(new THREE.BoxGeometry(1.11,0.14,0.43),
+    new THREE.MeshStandardMaterial({color:0xc4574e,roughness:0.85}));
+  stripe.position.y=0.5; g.add(stripe);
+  g.position.set(x,0,z); g.rotation.y=rot; scene.add(g);
+}
+for(let i=0;i<14;i++) barrier(-7.4, 26-i*3.4, 0.03);
+
+/* ---------- fence on the right + turn at the corner ---------- */
+const postMat=new THREE.MeshStandardMaterial({color:0x787d83,metalness:0.6,roughness:0.5});
+const meshMat=new THREE.MeshStandardMaterial({color:0x9aa0a6,roughness:0.6,metalness:0.5,transparent:true,opacity:0.32});
+function fenceRun(x1,z1,x2,z2){
+  const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz),n=Math.max(2,Math.round(len/3));
+  for(let i=0;i<=n;i++){
+    const p=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.035,2.1,8),postMat);
+    p.position.set(x1+dx*i/n,1.05,z1+dz*i/n); p.castShadow=true; scene.add(p);
+  }
+  const panel=new THREE.Mesh(new THREE.PlaneGeometry(len,1.9),meshMat);
+  panel.position.set((x1+x2)/2,0.95,(z1+z2)/2);
+  panel.rotation.y=-Math.atan2(dz,dx)+Math.PI/2;
+  scene.add(panel);
+}
+fenceRun(7,30, 7,CZ);           // along road
+fenceRun(7,CZ, 42,CZ);          // turning at the corner, heading +X
+
+/* ---------- containers behind the fence (right + past the corner) ---------- */
+const containerColors=[0x8a2f2a,0x27476e,0x9a5c28,0x3e6b4f,0x7a7d82,0x274a52,0x6e2a35];
+function containerTexture(baseHex){
+  const cv=document.createElement('canvas'); cv.width=256; cv.height=128;
+  const g=cv.getContext('2d');
+  g.fillStyle='#'+baseHex.toString(16).padStart(6,'0'); g.fillRect(0,0,256,128);
+  g.globalAlpha=0.22;
+  for(let x=6;x<256;x+=13){ g.fillStyle=(x/13)%2?'#000':'#fff'; g.fillRect(x,4,5,120); }
+  g.globalAlpha=1;
+  return new THREE.CanvasTexture(cv);
+}
+const contGeo=new THREE.BoxGeometry(6.06,2.59,2.44);
+function stack(x,z,rows,cols,rot){
+  const grp=new THREE.Group();
+  for(let r=0;r<rows;r++) for(let q=0;q<cols;q++){
+    const col=containerColors[Math.floor(Math.random()*containerColors.length)];
+    const m=new THREE.MeshStandardMaterial({map:containerTexture(col),roughness:0.7,metalness:0.25});
+    const box=new THREE.Mesh(contGeo,m);
+    box.position.set((Math.random()-0.5)*0.12, 2.59*r+1.295, q*2.62);
+    box.castShadow=box.receiveShadow=true; grp.add(box);
+  }
+  grp.position.set(x,0,z); grp.rotation.y=rot; scene.add(grp);
+}
+stack(13, 8, 3, 2, 0.02);
+stack(14, -2, 4, 2, -0.02);
+stack(12.5, CZ-6, 3, 2, 0.03);
+stack(20, CZ-9, 3, 3, 0.05);
+stack(30, CZ-7, 2, 2, -0.04);
+
+/* ---------- guard booth at the corner ---------- */
+const booth=new THREE.Group();
+const body=new THREE.Mesh(new THREE.BoxGeometry(2.1,2.3,2.1),
+  new THREE.MeshStandardMaterial({color:0xdfd9c8,roughness:0.85}));
+body.position.y=1.25; body.castShadow=body.receiveShadow=true; booth.add(body);
+const roof=new THREE.Mesh(new THREE.BoxGeometry(2.32,0.08,2.32),
+  new THREE.MeshStandardMaterial({color:0x6b675e,roughness:0.8}));
+roof.position.y=2.44; roof.castShadow=true; booth.add(roof);
+const door=new THREE.Mesh(new THREE.PlaneGeometry(0.85,1.7),
+  new THREE.MeshStandardMaterial({color:0x2a2620,roughness:0.7}));
+door.position.set(0.25,0.95,1.06); booth.add(door);
+const win=new THREE.Mesh(new THREE.PlaneGeometry(0.6,0.55),
+  new THREE.MeshStandardMaterial({color:0x1c2126,roughness:0.2,metalness:0.4}));
+win.position.set(-0.62,1.6,1.06); booth.add(win);
+booth.position.set(BOOTH_X,0,BOOTH_Z);
+scene.add(booth);
+
+/* ---------- unipole aligned with the booth ---------- */
+const steel=new THREE.MeshStandardMaterial({color:0xb9bdc2,roughness:0.42,metalness:0.75});
+const darkSteel=new THREE.MeshStandardMaterial({color:0x3a3d42,roughness:0.55,metalness:0.6});
+const pad=new THREE.Mesh(new THREE.BoxGeometry(1.25,0.14,1.25),
+  new THREE.MeshStandardMaterial({color:0x8d8a83,roughness:0.9}));
+pad.position.set(SIGN_X,0.07,SIGN_Z); pad.castShadow=pad.receiveShadow=true; scene.add(pad);
+const flange=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.05,0.62),darkSteel);
+flange.position.set(SIGN_X,0.165,SIGN_Z); scene.add(flange);
+for(const [bx,bz] of [[-0.25,-0.25],[0.25,-0.25],[-0.25,0.25],[0.25,0.25]]){
+  const bolt=new THREE.Mesh(new THREE.CylinderGeometry(0.022,0.022,0.09,10),darkSteel);
+  bolt.position.set(SIGN_X+bx,0.22,SIGN_Z+bz); scene.add(bolt);
+}
+const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.102,0.102,3.85,28),steel);
+pole.position.set(SIGN_X,0.19+3.85/2,SIGN_Z); pole.castShadow=true; scene.add(pole);
+const topFlange=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.045,0.5),darkSteel);
+topFlange.position.set(SIGN_X,4.06,SIGN_Z); scene.add(topFlange);
+
+const cab=new THREE.Group();
+const frame=new THREE.Mesh(new THREE.BoxGeometry(3.06,2.06,0.32),
+  new THREE.MeshStandardMaterial({color:0x24262a,roughness:0.5,metalness:0.55}));
+frame.castShadow=true; cab.add(frame);
+let matF=null;
+const faceGeo=new THREE.PlaneGeometry(2.92,1.92);
+const faceFront=new THREE.Mesh(faceGeo); faceFront.position.z=0.165; cab.add(faceFront);
+const faceBack=new THREE.Mesh(faceGeo); faceBack.position.z=-0.165; faceBack.rotation.y=Math.PI; cab.add(faceBack);
+function buildFaces(night){
+  const tex=faceTexture(night);
+  if(matF) matF.dispose();
+  matF=new THREE.MeshStandardMaterial({map:tex,roughness:0.35,metalness:0.05,
+    emissive:0xffffff,emissiveMap:tex,emissiveIntensity:night?0.95:0.06});
+  faceFront.material=matF; faceBack.material=matF;
+}
+cab.position.set(SIGN_X,5.0,SIGN_Z);
+scene.add(cab);
+
+/* ---------- interactive elements ---------- */
+const clickable=[];
+function reg(obj, key, title, text){
+  obj.traverse ? obj.traverse(o=>{ if(o.isMesh){ o.userData.k=key; clickable.push(o);} })
+               : (obj.userData.k=key, clickable.push(obj));
+}
+const INFO={
+ sign:{t:'اللوحة - فلكس فيس مضيء وجهين',
+   p:'مقاس 3م × 2م لكل وجه، كابينة معدنية بإنارة LED داخلية توزع الضوء على كامل الوجه. الوجهان يقرآن من اتجاهي الحركة.'},
+ pole:{t:'العمود - 8 بوصة ضغط عالي',
+   p:'عمود حديد 8 بوصة ضغط عالي بارتفاع يوصل الارتفاع الكلي إلى 6م تقريبا. مربوط باللوحة بفلنشة علوية 50×50 سم سماكة 1.2 سم، ومعالج ضد الصدأ قبل الدهان النهائي.'},
+ foundation:{t:'القاعدة الخرسانية - تحت الأرض',
+   p:'قاعدة خرسانية مسلحة 1.2 × 1.2 م بعمق 1.2 م (الشكل الذهبي الشفاف تحت الأرض). العمود مثبت عليها بفلنشة قاعدة 60×60 سم سماكة 1.6 سم مع 4 مسامير تثبيت مدفونة في الصبة. اضغط في أي مكان فاضي ترجع الأرض طبيعية.'},
+ power:{t:'مسار الكهرباء - من الغرفة إلى اللوحة',
+   p:'التغذية من غرفة الحراسة لأنها أقرب نقطة كهرباء. ماسورة PVC مدفونة تقريبا 40-50 سم تحت الأرض تمشي من جنب الغرفة إلى قاعدة العمود (الخط البرتقالي)، وبعدها الكيبل يصعد داخل العمود نفسه إلى وحدات الإنارة، فما يبان أي تمديد خارجي.'},
+ orientation:{t:'توجيه اللوحة على المنحنى - أهم نقطة في التركيب',
+   p:'الطريق عندنا منحني والبحر برا المنحنى، واللوحة داخل المنحنى وهذا أفضل موقع. التوجيه الصحيح: محور اللوحة الطولي على اتجاه 040/220 تقريبا (يأشر على البحر)، والوجهان يطلعان على 130 و 310. السر هو الميلان: 9 درجات تقريبا باتجاه البحر عن العمودي التام على الطريق، عشان كل وجه يظل مواجه لنظر السايق طول مسافة الاقتراب على المنحنى. في الموقع بدون بوصلة: عمودي على الطريق ثم لفة خفيفة ناحية البحر. الأسهم الذهبية توضح اتجاه الوجهين والخطوط الزرقاء خطوط نظر السواقين.'},
+ booth:{t:'غرفة الحراسة - مصدر التغذية',
+   p:'نقطة الربط الكهربائي: يركب فيها قاطع مستقل خاص باللوحة مع مؤقت زمني (تايمر) للتشغيل الليلي التلقائي.'}
+};
+reg(cab,'sign'); reg(pole,'pole');
+reg(pad,'foundation'); reg(flange,'foundation');
+reg(booth,'booth');
+
+/* underground: concrete block + rebar + anchor bolts (x-ray view) */
+const under=new THREE.Group();
+const conc=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.2,1.2),
+  new THREE.MeshStandardMaterial({color:0xd6b276,transparent:true,opacity:0.55,roughness:0.9}));
+conc.position.set(SIGN_X,-0.62,SIGN_Z); under.add(conc);
+const rebarMat=new THREE.MeshStandardMaterial({color:0x8a4a3a,roughness:0.6});
+for(let i=-1;i<=1;i++){
+  for(const [dx,dz] of [[i*0.4,0],[0,i*0.4]]){
+    const rb=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,1.05,6),rebarMat);
+    rb.position.set(SIGN_X+dx,-0.62,SIGN_Z+dz); under.add(rb);
+  }
+}
+for(const [bx,bz] of [[-0.25,-0.25],[0.25,-0.25],[-0.25,0.25],[0.25,0.25]]){
+  const ab=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,0.7,6),
+    new THREE.MeshStandardMaterial({color:0x4a4d52,metalness:0.6,roughness:0.5}));
+  ab.position.set(SIGN_X+bx,-0.15,SIGN_Z+bz); under.add(ab);
+}
+under.visible=false; scene.add(under);
+reg(conc,'foundation');
+
+/* electrical conduit: booth -> underground -> up inside pole */
+const curve=new THREE.CatmullRomCurve3([
+  new THREE.Vector3(BOOTH_X-1.0, 0.35, BOOTH_Z+0.9),
+  new THREE.Vector3(BOOTH_X-1.4, -0.45, BOOTH_Z+0.6),
+  new THREE.Vector3(SIGN_X+1.2, -0.45, SIGN_Z+0.4),
+  new THREE.Vector3(SIGN_X, -0.35, SIGN_Z),
+  new THREE.Vector3(SIGN_X, 1.2, SIGN_Z),
+  new THREE.Vector3(SIGN_X, 4.0, SIGN_Z)
+]);
+const conduit=new THREE.Mesh(new THREE.TubeGeometry(curve,48,0.045,8,false),
+  new THREE.MeshStandardMaterial({color:0xe07830,emissive:0xe07830,emissiveIntensity:0.25,
+    transparent:true,opacity:0.95}));
+conduit.visible=false; scene.add(conduit);
+reg(conduit,'power');
+
+/* pulsing hotspots */
+const hotspots=[];
+function hotspot(x,y,z,key){
+  const m=new THREE.Mesh(new THREE.SphereGeometry(0.13,12,12),
+    new THREE.MeshBasicMaterial({color:0xe8a64c,transparent:true,opacity:0.9}));
+  m.position.set(x,y,z); m.userData.k=key;
+  scene.add(m); clickable.push(m); hotspots.push(m);
+}
+hotspot(SIGN_X+1.7, 5.0, SIGN_Z+0.3, 'sign');
+hotspot(SIGN_X+0.25, 2.2, SIGN_Z, 'pole');
+hotspot(SIGN_X+0.55, 0.25, SIGN_Z+0.55, 'foundation');
+hotspot((SIGN_X+BOOTH_X)/2, 0.3, SIGN_Z+0.8, 'power');
+hotspot(BOOTH_X, 2.7, BOOTH_Z, 'booth');
+
+/* orientation aids: face-normal arrows + driver sight lines */
+const orientAids=new THREE.Group();
+const TILT=-0.16; // ~9 deg toward the sea side
+const dirA=new THREE.Vector3(Math.sin(TILT),0,Math.cos(TILT));   // biased face normal
+for(const sgn of [1,-1]){
+  const ah=new THREE.ArrowHelper(dirA.clone().multiplyScalar(sgn).normalize(),
+    new THREE.Vector3(SIGN_X,5.0,SIGN_Z), 5.5, 0xe8a64c, 1.1, 0.55);
+  orientAids.add(ah);
+}
+function sightLine(to){
+  const g=new THREE.BufferGeometry().setFromPoints(
+    [new THREE.Vector3(SIGN_X,4.8,SIGN_Z), to]);
+  const l=new THREE.Line(g,new THREE.LineDashedMaterial({color:0x6fb2e8,dashSize:0.6,gapSize:0.4}));
+  l.computeLineDistances(); return l;
+}
+orientAids.add(sightLine(new THREE.Vector3(SIGN_X-2.5,1.4,SIGN_Z+26)));  // approach along the corniche
+orientAids.add(sightLine(new THREE.Vector3(SIGN_X+26,1.4,SIGN_Z-5)));    // approach around the bend
+orientAids.visible=false; scene.add(orientAids);
+
+let orientOn=false;
+let savedView=null;
+function setOrient(on){
+  orientOn=on;
+  orientAids.visible=on;
+  cab.rotation.y = on ? TILT : 0;
+  orientBtn.classList.toggle('active',on);
+  if(on){
+    savedView={theta,phi,radius,t:target.clone()};
+    theta=0.5; phi=0.36; radius=26;
+    target.set(SIGN_X,1.5,SIGN_Z+4);
+    updateCam();
+    showInfo('orientation');
+  }else{
+    if(savedView){theta=savedView.theta;phi=savedView.phi;radius=savedView.radius;target.copy(savedView.t);updateCam();}
+    hideInfo();
+  }
+}
+const infoEl=document.getElementById('info');
+const infoT=document.getElementById('infoT');
+const infoP=document.getElementById('infoP');
+let groundGhost=false;
+function showInfo(k){
+  infoT.textContent=INFO[k].t; infoP.textContent=INFO[k].p;
+  infoEl.style.display='block';
+  const xray=(k==='foundation'||k==='power');
+  under.visible = xray || under.visible && k!=='sign';
+  under.visible = xray;
+  conduit.visible = (k==='power');
+  ground.material.opacity = xray?0.38:1;
+}
+function hideInfo(){
+  infoEl.style.display='none';
+  under.visible=false; conduit.visible=false;
+  ground.material.opacity=1;
+}
+window.hideInfo=hideInfo;
+const ray=new THREE.Raycaster();
+const ptr=new THREE.Vector2();
+let downX=0,downY=0;
+canvas.addEventListener('pointerdown',e=>{downX=e.clientX;downY=e.clientY;},{capture:false});
+canvas.addEventListener('pointerup',e=>{
+  if(Math.hypot(e.clientX-downX,e.clientY-downY)>8) return;   // was a drag
+  ptr.x=(e.clientX/innerWidth)*2-1;
+  ptr.y=-(e.clientY/innerHeight)*2+1;
+  ray.setFromCamera(ptr,camera);
+  const hits=ray.intersectObjects(clickable,false);
+  if(hits.length){ showInfo(hits[0].object.userData.k); }
+  else { if(orientOn) setOrient(false); else hideInfo(); }
+});
+
+/* ---------- street lights ---------- */
+const lampBulbs=[];
+function streetLight(x,z,rot){
+  const g=new THREE.Group();
+  const p=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.09,7,12),darkSteel);
+  p.position.y=3.5; p.castShadow=true; g.add(p);
+  const arm=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,1.4,8),darkSteel);
+  arm.rotation.z=Math.PI/2; arm.position.set(0.7,6.9,0); g.add(arm);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(0.55,0.1,0.22),
+    new THREE.MeshStandardMaterial({color:0x2c2f33,emissive:0xffe6b0,emissiveIntensity:0}));
+  head.position.set(1.35,6.9,0); g.add(head);
+  const lt=new THREE.PointLight(0xffdfa8,0,16,2);
+  lt.position.set(1.35,6.7,0); g.add(lt);
+  lampBulbs.push({head,lt});
+  g.position.set(x,0,z); g.rotation.y=rot; scene.add(g);
+}
+streetLight(-6.2, 12, 0);
+streetLight(-6.2, -4, 0);
+streetLight(12, CZ-3, Math.PI);
+
+/* ---------- distant city + tower (left horizon like the real photo) ---------- */
+const tower=new THREE.Group();
+const shaft=new THREE.Mesh(new THREE.CylinderGeometry(1.6,1.6,16,14),
+  new THREE.MeshStandardMaterial({color:0xcfc7b6,roughness:0.8}));
+shaft.position.y=8; tower.add(shaft);
+const crown=new THREE.Mesh(new THREE.CylinderGeometry(2.6,1.8,4,14),
+  new THREE.MeshStandardMaterial({color:0xb9ae98,roughness:0.8}));
+crown.position.y=17.5; tower.add(crown);
+tower.position.set(-46,0,-42); scene.add(tower);
+const cityDots=new THREE.Group();
+for(let i=0;i<70;i++){
+  const d0=new THREE.Mesh(new THREE.SphereGeometry(0.12,6,6),
+    new THREE.MeshBasicMaterial({color:Math.random()>0.5?0xffd9a0:0xbfd8ff}));
+  const ang=Math.random()*Math.PI*2, r=75+Math.random()*30;
+  d0.position.set(Math.sin(ang)*r,0.5+Math.random()*6,Math.cos(ang)*r);
+  cityDots.add(d0);
+}
+scene.add(cityDots);
+
+/* ---------- lighting / modes ---------- */
+const hemi=new THREE.HemisphereLight(0xbfd3e6,0x3a3a38,0.9); scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xfff2dd,1.1);
+sun.position.set(18,26,14); sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.left=-25; sun.shadow.camera.right=25;
+sun.shadow.camera.top=25; sun.shadow.camera.bottom=-25;
+scene.add(sun);
+const signGlowF=new THREE.SpotLight(0xffe9c4,0,12,0.9,0.6);
+signGlowF.position.set(SIGN_X,5.0,SIGN_Z+3.4); signGlowF.target=cab; scene.add(signGlowF);
+const signGlowB=signGlowF.clone(); signGlowB.position.set(SIGN_X,5.0,SIGN_Z-3.4); signGlowB.target=cab; scene.add(signGlowB);
+const poolLight=new THREE.PointLight(0xffdfae,0,9,2);
+poolLight.position.set(SIGN_X,4.4,SIGN_Z); scene.add(poolLight);
+
+let night=true;
+const seaMat=sea.material;
+function applyMode(){
+  buildFaces(night);
+  cityDots.visible=night;
+  for(const {head,lt} of lampBulbs){
+    head.material.emissiveIntensity=night?1.4:0;
+    lt.intensity=night?1.15:0;
+  }
+  if(night){
+    scene.background=new THREE.Color(0x0b0e14);
+    scene.fog=new THREE.Fog(0x0b0e14,28,120);
+    hemi.intensity=0.20; sun.intensity=0.10; sun.color.set(0x8fa5c8);
+    seaMat.color.set(0x123540);
+    signGlowF.intensity=1.6; signGlowB.intensity=1.6; poolLight.intensity=1.1;
+  }else{
+    scene.background=new THREE.Color(0xc3d6e6);
+    scene.fog=new THREE.Fog(0xc3d6e6,45,160);
+    hemi.intensity=0.95; sun.intensity=1.15; sun.color.set(0xfff2dd);
+    seaMat.color.set(0x2e6d80);
+    signGlowF.intensity=0; signGlowB.intensity=0; poolLight.intensity=0;
+  }
+  dayBtn.classList.toggle('active',!night);
+  nightBtn.classList.toggle('active',night);
+}
+
+/* ---------- orbit ---------- */
+let theta=0.35, phi=1.25, radius=17;
+const target=new THREE.Vector3(4.5,2.6,-9);
+let auto=false,dragging=false,px=0,py=0,pinch=0;
+function updateCam(){
+  phi=Math.max(0.3,Math.min(1.52,phi));
+  radius=Math.max(6,Math.min(55,radius));
+  camera.position.set(
+    target.x+radius*Math.sin(phi)*Math.sin(theta),
+    target.y+radius*Math.cos(phi),
+    target.z+radius*Math.sin(phi)*Math.cos(theta));
+  camera.lookAt(target);
+}
+canvas.addEventListener('pointerdown',e=>{dragging=true;px=e.clientX;py=e.clientY;});
+window.addEventListener('pointerup',()=>dragging=false);
+window.addEventListener('pointermove',e=>{
+  if(!dragging)return;
+  theta-=(e.clientX-px)*0.0055;
+  phi-=(e.clientY-py)*0.0045;
+  px=e.clientX;py=e.clientY;updateCam();
+});
+canvas.addEventListener('wheel',e=>{radius+=e.deltaY*0.012;updateCam();},{passive:true});
+canvas.addEventListener('touchmove',e=>{
+  if(e.touches.length===2){
+    const d0=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,
+                        e.touches[0].clientY-e.touches[1].clientY);
+    if(pinch)radius+=(pinch-d0)*0.035;
+    pinch=d0;updateCam();
+  }
+},{passive:true});
+canvas.addEventListener('touchend',()=>pinch=0);
+
+const VIEWS={
+  v1:{theta:0.06, phi:1.42, radius:20, t:[SIGN_X-1,3.4,SIGN_Z]},   // driver on the corniche
+  v2:{theta:0.5,  phi:0.34, radius:30, t:[SIGN_X,1.5,SIGN_Z+2]},   // top plan
+  v3:{theta:-1.55,phi:1.15, radius:18, t:[SIGN_X,3.0,SIGN_Z]},     // from the sea
+  v4:{theta:1.85, phi:1.18, radius:16, t:[SIGN_X,3.0,SIGN_Z]}      // from inside the yard
+};
+function setView(k){
+  const v=VIEWS[k];
+  theta=v.theta; phi=v.phi; radius=v.radius;
+  target.set(v.t[0],v.t[1],v.t[2]);
+  updateCam();
+  for(const id of ['v1','v2','v3','v4'])
+    document.getElementById(id).classList.toggle('active', id===k);
+}
+for(const id of ['v1','v2','v3','v4'])
+  document.getElementById(id).onclick=()=>setView(id);
+const dayBtn=document.getElementById('dayBtn');
+const nightBtn=document.getElementById('nightBtn');
+const spinBtn=document.getElementById('spinBtn');
+dayBtn.onclick=()=>{night=false;applyMode();};
+nightBtn.onclick=()=>{night=true;applyMode();};
+spinBtn.onclick=()=>{auto=!auto;spinBtn.classList.toggle('active',auto);};
+const orientBtn=document.getElementById('orientBtn');
+orientBtn.onclick=()=>setOrient(!orientOn);
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.display='block';
+  clearTimeout(t._h); t._h=setTimeout(()=>t.style.display='none',2200);
+}
+document.getElementById('waBtn').onclick=()=>{
+  const msg='معاينة 3D تفاعلية - لوحة يوني بول لثقة للخدمات اللوجستية\n'+location.href;
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+};
+document.getElementById('cpBtn').onclick=async()=>{
+  try{
+    await navigator.clipboard.writeText(location.href);
+    toast('تم نسخ الرابط');
+  }catch(e){
+    const ta=document.createElement('textarea');
+    ta.value=location.href; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); ta.remove();
+    toast('تم نسخ الرابط');
+  }
+};
+function resize(){
+  renderer.setSize(innerWidth,innerHeight,false);
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize',resize);
+resize(); applyMode(); updateCam();
+let tt=0;
+renderer.setAnimationLoop(()=>{
+  tt+=0.05;
+  const sc=1+0.22*Math.sin(tt);
+  for(const h of hotspots) h.scale.setScalar(sc);
+  if(auto&&!dragging){theta+=0.0035;updateCam();}
+  renderer.render(scene,camera);
+});
+</script>
+</body>
+</html>
